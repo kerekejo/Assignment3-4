@@ -20,82 +20,68 @@ def readCiphertext(filename):
         return list
 
 def ec_add(P, Q, a, p):
-    """Elliptic curve point addition: P + Q"""
-    if P is None:  # P is point at infinity
+    if P is None:  
         return Q
-    if Q is None:  # Q is point at infinity
+    if Q is None:
         return P
     x1, y1 = P
     x2, y2 = Q
     if x1 == x2 and y1 == (-y2 % p):  # P = -Q
-        return None  # Point at infinity
+        return None 
     
-    if P == Q:  # Point doubling
-        if y1 == 0:  # Point at infinity
+    if P == Q:
+        if y1 == 0:  
             return None
-        # Slope for doubling: m = (3x^2 + a) / (2y)
         m = ((3 * x1 * x1 + a) * pow(2 * y1, -1, p)) % p
     else:
-        # Slope for addition: m = (y2 - y1) / (x2 - x1)
-        if x2 == x1:  # Points are vertically aligned
+        if x2 == x1:
             return None
         m = ((y2 - y1) * pow(x2 - x1, -1, p)) % p
     
-    # x3 = m^2 - x1 - x2
+
     x3 = (m * m - x1 - x2) % p
-    # y3 = m(x1 - x3) - y1
     y3 = (m * (x1 - x3) - y1) % p
     
     return (x3, y3)
 
 def ec_subtract(P, Q, a, p):
-    """Elliptic curve point subtraction: P - Q"""
-    if Q is None:  # Q is point at infinity
+    if Q is None: 
         return P
-    if P is None:  # P is point at infinity
-        return (Q[0], -Q[1] % p)  # Return -Q
-    # Subtraction: P - Q = P + (-Q)
-    Q_neg = (Q[0], -Q[1] % p)  # Negate y-coordinate
+    if P is None:  
+        return (Q[0], -Q[1] % p)  
+
+    Q_neg = (Q[0], -Q[1] % p) 
     return ec_add(P, Q_neg, a, p)
 
 def ec_multiply(P, k, a, p):
-    """Elliptic curve scalar multiplication: k * P"""
     if k == 0 or P is None:
-        return None  # Point at infinity
+        return None  
     if k < 0:
-        P = (P[0], -P[1] % p)  # Negate point
+        P = (P[0], -P[1] % p)  
         k = -k
     
-    # Double-and-add algorithm
+  
     result = None
     temp = P
     while k:
-        if k & 1:  # If k is odd, add temp to result
+        if k & 1:  
             result = ec_add(result, temp, a, p)
-        temp = ec_add(temp, temp, a, p)  # Double temp
+        temp = ec_add(temp, temp, a, p) 
         k >>= 1
     
     return result
 
 def decryptCipherText(cipherText, a, b, bigP, G, n, p):
-    """Decrypt EC ElGamal ciphertext using private key n"""
     decrypted = []
     for c1, c2, c3, c4 in cipherText:
-        # Ciphertext format: (c1, c2, c3, c4) = (x1, y1, x2, y2)
-        # (x1, y1) = kG (ephemeral key), (x2, y2) = M + kP (message + mask)
-        # Private key n, public key P = nG
-        # Compute kP = n * (x1, y1)
         kP = ec_multiply((c3, c4), n, a, p)
-        # Recover message M = (x1, y2) - kP
         M = ec_subtract((c1, c2), kP, a, p)
         if M is not None:
-            # Convert x-coordinate to ASCII (assuming message is encoded in x-coordinate)
-            decrypted.append(chr(M[0] % 256))  # Mod 256 to map to ASCII
+            decrypted.append(chr(M[0] % 256)) 
         else:
-            decrypted.append('?')  # Handle invalid points
+            decrypted.append('?')  
     return ''.join(decrypted)
 
-# Read parameters
 A = read_ints_from_file(r"C:\Users\Joe\OneDrive\Pictures\Desktop\CryptographyHomeworkII\assignment4\A.txt")
 B = read_ints_from_file(r"C:\Users\Joe\OneDrive\Pictures\Desktop\CryptographyHomeworkII\assignment4\B.txt")
 bigP = read_ints_from_file_split(r"C:\Users\Joe\OneDrive\Pictures\Desktop\CryptographyHomeworkII\assignment4\bigP.txt")
@@ -104,6 +90,5 @@ N = read_ints_from_file(r"C:\Users\Joe\OneDrive\Pictures\Desktop\CryptographyHom
 p = read_ints_from_file(r"C:\Users\Joe\OneDrive\Pictures\Desktop\CryptographyHomeworkII\assignment4\p.txt")
 cipherText = readCiphertext(r"C:\Users\Joe\OneDrive\Pictures\Desktop\CryptographyHomeworkII\assignment4\cipherTextH.txt")
 
-# Decrypt and print result
 print(decryptCipherText(cipherText, A, B, bigP, G, N, p))
     
